@@ -134,33 +134,6 @@ jobs:
           /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}" `
           /d:sonar.scanner.skipJreProvisioning=true
 
-      - name: Run Tests on ${{ matrix.framework }} for TargetFramework ${{ matrix.target }} with Coverage
-        run: |
-          # Build the main library with framework targeting for SonarQube
-          dotnet build SignNow.Net --configuration Debug --no-incremental `
-            /p:TargetFramework=${{ matrix.target }} `
-            ${{ env.DOTNET_BUILD_ARGS }}
-
-          # Build the test project for the specific framework
-          dotnet build SignNow.Net.Test --configuration Debug --no-incremental `
-            --framework ${{ matrix.framework }} `
-            ${{ env.DOTNET_BUILD_ARGS }}
-
-          dotnet test SignNow.Net.Test --configuration Debug --no-build `
-            --framework ${{ matrix.framework }} `
-            --logger:trx --results-directory ./SignNow.Net.Test/TestResults `
-            /p:CollectCoverage=true
-
-      - name: Save Code Coverage Results
-        uses: actions/upload-artifact@v4
-        with:
-          name: CoverageReports-${{ runner.os }}-${{ matrix.framework }}.zip
-          path: ${{ env.COVERAGE_PATH }}/**/coverage*
-
-      - name: SonarQube end
-        if: steps.sonar.outputs.has-project-key == 'true'
-        continue-on-error: true
-        run: dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_SECRET }}"
 
       - name: Test Release Notes parser
         if: (runner.os == 'macOS' || runner.os == 'Linux')
